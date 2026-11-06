@@ -1,0 +1,63 @@
+# Compose untuk PRODUKSI (VPS): memakai image siap pakai dari registry (GHCR),
+# TIDAK membangun dari source code. Di-deploy otomatis oleh GitHub Actions.
+#   Docker :  docker compose -f docker-compose.prod.yml up -d
+#   Podman :  podman compose -f docker-compose.prod.yml up -d
+name: sekawan-board
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [db-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ${IMAGE_PREFIX}-backend:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [db-net, app-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    image: ${IMAGE_PREFIX}-frontend:${IMAGE_TAG:-latest}
+    restart: always
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [app-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/nginx-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  pgdata:
+
+networks:
+  db-net:
+    internal: true
+  app-net:

@@ -1,0 +1,68 @@
+# Compose untuk PENGEMBANGAN LOKAL: image di-build dari source code di folder ini.
+#   Docker :  docker compose up -d --build
+#   Podman :  podman compose up -d --build     (atau podman-compose up -d --build)
+name: sekawan-board
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sekawan_board}
+      POSTGRES_USER: ${POSTGRES_USER:-sekawan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sekawan}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [db-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: local
+    image: sekawan-board-backend:local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-sekawan}:${POSTGRES_PASSWORD:-sekawan}@db:5432/${POSTGRES_DB:-sekawan_board}
+      JWT_SECRET: ${JWT_SECRET:-secret-hanya-untuk-lokal}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [db-net, app-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+    image: sekawan-board-frontend:local
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [app-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/nginx-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  pgdata:
+
+networks:
+  db-net:
+    internal: true   # database tidak punya akses keluar dan tidak bisa dijangkau dari luar
+  app-net:

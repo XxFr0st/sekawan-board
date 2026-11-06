@@ -1,0 +1,21 @@
+{
+  "name": "sekawan-board-backend",
+  "version": "1.0.0",
+  "description": "REST API Sekawan Board - aplikasi manajemen tugas kelompok (UTS Pengembangan dan Operasi)",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}
