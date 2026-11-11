@@ -27,7 +27,7 @@ export default function AuthPage({ onAuthed }) {
     <div className="auth">
       <section className="auth-intro">
         <div className="brand"><span className="brand-mark" aria-hidden="true" /> Sekawan Board</div>
-        <h1>Atur tugas kuliah dan proyek dalam satu papan.</h1>
+        <h1>Mengatur UTS mata kuliah dan project dalam satu papan.</h1>
         <p>Catat tugas, beri prioritas dan tenggat, lalu geser dari “Belum dikerjakan” sampai “Selesai”.</p>
         <ul>
           <li>Papan tugas tiga kolom dengan drag and drop</li>
